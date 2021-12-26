@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 #
+import os
 import csv
 import json
 import requests
 from bs4 import BeautifulSoup
 
 URL_BASE = 'https://opcoes.net.br/opcoes/bovespa/'
+BASE_DIR = os.getcwd()
 
 LIST_MENU_BA = ['BBAS3', 'BBDC3', 'BBDC4', 'BBTG11', 'BRSR6', 'ITSA4', 'ITUB3', 'ITUB4', 'SANB11']
 
@@ -223,8 +225,7 @@ class Bovespa(Browser):
         """
         Aplica o filtro de data/hora no objeto e itera nele retornando uma lista de ações.
 
-        :param data:
-        :return:
+        :param data:return:
         """
 
         list_actions = []
@@ -238,11 +239,10 @@ class Bovespa(Browser):
 
     def export_to_csv(self, type, data):
         """
-        Exporta ou seja, cria um arquivo csv de acordo com o tipo.
+        Exporta, ou seja, cria um arquivo csv conforme o tipo.
 
         :param type:
-        :param data:
-        :return:
+        :param data:return:
         """
 
         print(f'\nGerando {type} CSV file...')
@@ -252,7 +252,11 @@ class Bovespa(Browser):
                 'DELTA', 'GAMMA', 'THETA($)', 'THETA(%)', 'VEGA',
                 ]
 
-        with open(f"{type}.csv", "w", encoding='UTF-8') as f:
+        file_path = os.path.join(BASE_DIR, 'src/data')
+        if not os.path.exists(file_path):
+            os.makedirs(file_path, exist_ok=True)
+
+        with open(f"{file_path}/{type}.csv", "w", encoding='UTF-8') as f:
             writer = csv.writer(f, delimiter=",", lineterminator="\n")
             writer.writerow(cols)
             for item in data:
@@ -264,25 +268,27 @@ class Bovespa(Browser):
 if __name__ == '__main__':
     bv = Bovespa()  # Inicia o objeto.
 
-    """Recebe um filtro para selecão de ativos"""
-    actives = bv.get_actives(list_menu='ML')  # Retorna a uma lista com os ativos referente ao tipo selecionado, por padrão usa 'ML', 'TA' traz todos.
+    #  Recebe um filtro para selecão de ativos
+    actives = bv.get_actives(list_menu='TA')  # Retorna a uma lista com os ativos referente ao tipo selecionado, por padrão usa 'ML', 'TA' traz todos.
     # print('\nLISTA DE ATIVOS: ', actives)
 
-    """Diz ao objeto qual o ativo que queremos extrair dados"""
-    bv.get_json(actives[0], soup_cnf={"features": "html.parser"})  # Pega os dados do ativo da posição 0 na lista de ativos, mas outros podem ser selecionados.
+    """
+    #  Diz ao objeto qual o ativo que queremos extrair dados
+    result = bv.get_json(actives[0], soup_cnf={"features": "html.parser"})  # Pega os dados do ativo da posição 0 na lista de ativos, mas outros podem ser selecionados.
+    # print(json.dumps(result, indent=4))
 
-    """Chama o método que extrai o filtro de datas de vencimentos"""
+    #  Chama o método que extrai o filtro de datas de vencimentos
     dues = bv.get_due_dates()  # Retorna uma lista com os filtros de vencimentos para serem aplicados
     # print('\nLISTA DE VENCIMENTOS: ', dues)
 
-    """Aplica o filtro de vencimentos e ou data/hora, aguarda por sub-filtros de compra ou venda"""
-    bv.set_filters(due_date=dues[1])  # Define os filtros para a busca seja de compra ou venda de um ativo, o filtro de vencimento deve ser passado com índice referente
+    #  Aplica o filtro de vencimentos e ou data/hora, aguarda por sub-filtros de compra ou venda
+    bv.set_filters(due_date=dues[0])  # Define os filtros para a busca seja de compra ou venda de um ativo, o filtro de vencimento deve ser passado com índice referente
 
-    """Chama o método que traz todas as operações de compra, ainda sem filtros aplicados"""
+    #  Chama o método que traz todas as operações de compra, ainda sem filtros aplicados
     calls = bv.get_calls()  # Retorna uma lista com todas as operações de compra.
     # print(calls)
 
-    """Chama o método que traz todas as operações de compra, ainda sem filtros aplicados"""
+    #  Chama o método que traz todas as operações de compra, ainda sem filtros aplicados
     puts = bv.get_puts()  # Retorna uma lista com todas as operações de venda.
     # print(puts)
 
@@ -295,6 +301,19 @@ if __name__ == '__main__':
 
     for action in puts:
         print('PUT: ', action)
-
+        
     bv.export_to_csv('PUT', puts)
     bv.export_to_csv('CALL', calls)
+    """
+
+    for active in actives:
+        result = bv.get_json(active, soup_cnf={"features": "html.parser"})
+        dues = bv.get_due_dates()
+        if len(dues) > 0:
+            bv.set_filters(due_date=dues[0])
+
+            calls = bv.get_calls()
+            puts = bv.get_puts()
+
+            bv.export_to_csv(f'PUT_for_{active}', puts)
+            bv.export_to_csv(f'CALL_for_{active}', calls)
