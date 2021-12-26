@@ -170,9 +170,9 @@ class Bovespa(Browser):
         for call in self.current_json['data']['expirations']:
             if self.due_date:
                 if self.due_date == call['dt']:
-                    call_list.append(call['c'])
+                    call_list.append(call['calls'])
             else:
-                call_list.append(call['c'])
+                call_list.append(call['calls'])
         if self.date_hour:
             return self.date_hour_aplly(call_list)
         else:
@@ -193,9 +193,9 @@ class Bovespa(Browser):
         for put in self.current_json['data']['expirations']:
             if self.due_date:
                 if self.due_date == put['dt']:
-                    put_list.append(put['p'])
+                    put_list.append(put['puts'])
             else:
-                put_list.append(put['p'])
+                put_list.append(put['puts'])
         if self.date_hour:
             return self.date_hour_aplly(put_list)
         else:
